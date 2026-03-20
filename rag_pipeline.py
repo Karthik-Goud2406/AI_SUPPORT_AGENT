@@ -3,7 +3,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 import google.generativeai as genai
 import streamlit as st
 
-# 🔐 Load API key from Streamlit secrets
+# 🔐 Secure API key (from Streamlit secrets)
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 
 # Load embeddings
@@ -11,7 +11,7 @@ embeddings = HuggingFaceEmbeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
 
-# Load vector DB
+# Load FAISS DB
 db = FAISS.load_local(
     "db/faiss_index",
     embeddings,
@@ -21,7 +21,7 @@ db = FAISS.load_local(
 # Retriever (fast)
 retriever = db.as_retriever(search_kwargs={"k": 1})
 
-# Gemini model (FAST)
+# Gemini model (fast + cheap)
 model = genai.GenerativeModel("gemini-1.5-flash")
 
 
