@@ -4,8 +4,14 @@ import google.generativeai as genai
 import streamlit as st
 import os
 
-# 🔐 API key
+# 🔐 Configure API key safely
+if "GOOGLE_API_KEY" not in st.secrets:
+    raise ValueError("GOOGLE_API_KEY not found in Streamlit secrets")
+
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+
+# ✅ Use stable Gemini model
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 # Embeddings
 embeddings = HuggingFaceEmbeddings(
@@ -14,35 +20,41 @@ embeddings = HuggingFaceEmbeddings(
 
 DB_PATH = "db/faiss_index"
 
-# ✅ Create or load FAISS
-if os.path.exists(DB_PATH):
-    db = FAISS.load_local(
-        DB_PATH,
-        embeddings,
-        allow_dangerous_deserialization=True
-    )
-else:
-    from langchain_community.document_loaders import TextLoader
+def load_or_create_db():
+    if os.path.exists(DB_PATH):
+        return FAISS.load_local(
+            DB_PATH,
+            embeddings,
+            allow_dangerous_deserialization=True
+        )
+    else:
+        from langchain_community.document_loaders import TextLoader
 
-    loader = TextLoader("data/company.txt")
-    docs = loader.load()
+        if not os.path.exists("data/company.txt"):
+            raise FileNotFoundError("data/company.txt not found")
 
-    db = FAISS.from_documents(docs, embeddings)
-    db.save_local(DB_PATH)
+        loader = TextLoader("data/company.txt")
+        docs = loader.load()
 
-# Retriever
+        db = FAISS.from_documents(docs, embeddings)
+        db.save_local(DB_PATH)
+        return db
+
+# Load DB
+db = load_or_create_db()
 retriever = db.as_retriever(search_kwargs={"k": 1})
-
-# Gemini model
-model = genai.GenerativeModel("gemini-1.5-flash")
 
 
 def get_answer(query):
-    docs = retriever.invoke(query)
+    try:
+        docs = retriever.invoke(query)
 
-    context = "\n".join([doc.page_content for doc in docs])
+        if not docs:
+            return "I don't have enough information."
 
-    prompt = f"""
+        context = "\n".join([doc.page_content for doc in docs])
+
+        prompt = f"""
 Answer in ONE short sentence.
 
 Context:
@@ -52,6 +64,12 @@ Question:
 {query}
 """
 
-    response = model.generate_content(prompt)
+        response = model.generate_content(prompt)
 
-    return response.text.strip()
+        if not response or not response.text:
+            return "No response generated."
+
+        return response.text.strip()
+
+    except Exception as e:
+        return f"Error: {str(e)}"
