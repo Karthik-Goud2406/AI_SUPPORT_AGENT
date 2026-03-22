@@ -1,8 +1,20 @@
-
-venv/
+# Python
 __pycache__/
 *.pyc
+.venv/
+venv/
+
+# Environment variables
 .env
-.env.*
+
+# Vector DB (FAISS)
+db/faiss_index/
+
+# Logs
 *.log
-*.sqlite3
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
