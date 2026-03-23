@@ -11,7 +11,7 @@ if "GOOGLE_API_KEY" not in st.secrets:
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 
 # ✅ Use stable Gemini model
-model = genai.GenerativeModel("gemini-1.5-flash")
+model = genai.GenerativeModel("gemini-pro")
 
 # Embeddings
 embeddings = HuggingFaceEmbeddings(
